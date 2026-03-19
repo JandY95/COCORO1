@@ -9,6 +9,7 @@ import {
   normalizeText,
   readJsonBody,
 } from "../_lib/security.js";
+import { getDataSourceId } from "../_lib/notion-data-source.js";
 
 const recoverLimiter = createLimiterStore();
 const DATE_PROP_NAME = "접수일시";
@@ -88,6 +89,8 @@ export async function onRequest(context) {
   try {
     const body = await readJsonBody(request);
     const notion = new Client({ auth: env.NOTION_TOKEN });
+    const dataSourceId = await getDataSourceId(notion, env);
+
     const name = normalizeText(body.name, 40);
     const phone = normalizeText(body.phone, 20);
     const date = normalizeText(body.date, 20);
@@ -115,8 +118,8 @@ export async function onRequest(context) {
     const hits = [];
 
     while (true) {
-      const resp = await notion.databases.query({
-        database_id: env.NOTION_DATABASE_ID,
+      const resp = await notion.dataSources.query({
+        data_source_id: dataSourceId,
         page_size: PAGE_SIZE,
         start_cursor: cursor,
         filter: {

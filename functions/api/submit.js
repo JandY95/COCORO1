@@ -9,6 +9,7 @@ import {
   normalizeText,
   readJsonBody,
 } from "../_lib/security.js";
+import { getDataSourceId } from "../_lib/notion-data-source.js";
 
 const submitLimiter = createLimiterStore();
 
@@ -52,6 +53,7 @@ export async function onRequest(context) {
   try {
     const body = await readJsonBody(request);
     const notion = new Client({ auth: env.NOTION_TOKEN });
+    const dataSourceId = await getDataSourceId(notion, env);
 
     const customerName = normalizeText(body.customerName, 40);
     const phone = normalizeText(body.phone, 20);
@@ -88,7 +90,7 @@ export async function onRequest(context) {
     const receiptTitle = `${yy}${mm}${dd}-${hh}${mi}${ss}-${cleanName}-${phoneLast4}`;
 
     await notion.pages.create({
-      parent: { database_id: env.NOTION_DATABASE_ID },
+      parent: { data_source_id: dataSourceId },
       properties: {
         접수번호: { title: [{ text: { content: receiptTitle } }] },
         고객명: { rich_text: [{ text: { content: customerName } }] },

@@ -750,7 +750,7 @@
       Object.entries(t).forEach(([k,v]) => root.style.setProperty(k, v));
     })();
 
-    // ===== API (Vercel/Netlify 공통) =====
+    // ===== API (Cloudflare Pages 기준) =====
     const submitUrl = "/api/submit";
 
     function setStatus(msg, type){

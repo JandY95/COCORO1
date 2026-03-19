@@ -5,30 +5,37 @@ COCORO SHOP 운영을 위해 다음 기능을 제공합니다.
 
 1) **배송정보 입력(고객용 웹 폼)**  
 - 고객이 성함/연락처/주소/요청사항을 입력
-- 입력 내용은 **Notion DB(출고 접수 관리)**로 저장
-- 저장 후 고객에게 **접수번호(Receipt)**를 발급(접수증)
+- 입력 내용은 **Notion DB(출고 접수 관리)** 로 저장
+- 저장 후 고객에게 **접수번호(Receipt)** 를 발급(접수증)
 
 2) **접수 조회(고객용)**  
-- 고객이 접수번호를 입력하면, 현재 처리상태(접수/출고준비/출고완료 등)를 확인
+- 고객이 접수번호를 입력하면 현재 처리상태(접수/출고준비/출고완료 등)를 확인
 - 출고완료 + 송장번호가 존재할 때만 송장번호를 표시
 
 3) **송장번호 자동 반영(운영자용)**  
 - CJ대한통운에서 내려받은 엑셀에서  
-  `고객주문번호(=접수번호)` ↔ `운송장번호(=송장번호)`를 읽어 매칭
+  `고객주문번호(=접수번호)` ↔ `운송장번호(=송장번호)` 를 읽어 매칭
 - **Notion 처리상태가 ‘출고준비’인 건만** 송장번호를 반영
-- 옵션에 따라, 반영 시 **처리상태=출고완료 + 출고일시(오늘)** 자동 입력 가능
+- 옵션에 따라 반영 시 **처리상태=출고완료 + 출고일시(오늘)** 자동 입력 가능
 
 ---
 
 ## 2. 주요 URL(운영 화면)
-- 배송정보 입력: https://notion-address-form.vercel.app/index.html
-- 접수 조회: https://notion-address-form.vercel.app/status.html
-- 송장 반영(운영자): https://notion-address-form.vercel.app/tracking.html
+- 배송정보 입력: https://cocoro1.pages.dev/index.html
+- 접수 조회: https://cocoro1.pages.dev/status.html
+- 송장 반영(운영자): https://cocoro1.pages.dev/tracking.html
 
 ---
 
-## 3. Notion DB(출고 접수 관리) 요구 속성(이름 정확히 일치해야 함)
-※ 속성명은 코드에서 “문자열로” 쓰기 때문에, **노션 속성명과 완전 동일**해야 합니다.
+## 3. 현재 운영 기준
+- **정본(Source of Truth)**: GitHub `main`
+- **배포 환경**: Cloudflare Pages
+- **민감정보 저장 위치**: Cloudflare Pages → Settings → Variables and Secrets
+
+---
+
+## 4. Notion DB(출고 접수 관리) 요구 속성(이름 정확히 일치해야 함)
+※ 속성명은 코드에서 문자열로 쓰기 때문에 **노션 속성명과 완전 동일**해야 합니다.
 
 ### (필수) 접수/고객 정보
 - **접수번호**: Title
@@ -41,7 +48,7 @@ COCORO SHOP 운영을 위해 다음 기능을 제공합니다.
 
 ### (필수) 상태/출고/송장
 - 처리상태: Status  
-  - 예: 접수 / 출고준비 / 출고완료 (실제 이름은 노션에 존재해야 함)
+  - 예: 접수 / 출고준비 / 출고완료
 - 송장번호: Rich text
 - 출고일시: Date (송장 반영 시 자동 입력 옵션 사용 시 필요)
 
@@ -51,7 +58,21 @@ COCORO SHOP 운영을 위해 다음 기능을 제공합니다.
 
 ---
 
-## 4. CJ 엑셀 매핑 규칙(핵심)
+## 5. Notion 연동 기준(중요)
+현재 코드는 **Notion SDK v5 / data source 구조** 기준입니다.
+
+- 필수 환경변수:
+  - `NOTION_TOKEN`
+  - `NOTION_DATABASE_ID`
+  - `TRACKING_ADMIN_PASS`
+
+- 선택 환경변수:
+  - `NOTION_DATA_SOURCE_ID`
+    - 비워두면 코드가 `NOTION_DATABASE_ID`를 기준으로 첫 번째 data source를 자동 탐색합니다.
+
+---
+
+## 6. CJ 엑셀 매핑 규칙(핵심)
 - 엑셀 컬럼:
   - **고객주문번호** = Notion의 **접수번호**
   - **운송장번호** = Notion의 **송장번호**
@@ -61,16 +82,16 @@ COCORO SHOP 운영을 위해 다음 기능을 제공합니다.
 
 ---
 
-## 5. 보안/개인정보 원칙
-- Notion 토큰(NOTION_TOKEN), DB ID(NOTION_DATABASE_ID), 운영자 비밀번호(TRACKING_ADMIN_PASS)는
+## 7. 보안/개인정보 원칙
+- `NOTION_TOKEN`, `NOTION_DATABASE_ID`, `TRACKING_ADMIN_PASS`, `NOTION_DATA_SOURCE_ID` 는
   **문서/소스코드에 직접 적지 않습니다.**
-- 모두 **Vercel Environment Variables**에만 저장합니다.
+- 모두 **Cloudflare Pages → Variables and Secrets** 에만 저장합니다.
 - 송장 반영 페이지는 **운영자 비밀번호**를 알아야 실행할 수 있도록 구성합니다.
 
 ---
 
-## 6. 운영/성능(요약)
-- 송장 반영은 많은 건을 처리할 수 있어, 호출/지연을 제어하는 설정값이 있습니다.
+## 8. 운영/성능(요약)
+- 송장 반영은 많은 건을 처리할 수 있어 호출/지연을 제어하는 설정값이 있습니다.
 - 대표 설정:
   - CHUNK: 한 번 API 호출에 보내는 아이템 수
   - UPDATE_DELAY_MS: Notion API 업데이트 사이 지연(ms)

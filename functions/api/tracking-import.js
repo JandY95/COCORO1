@@ -8,6 +8,7 @@ import {
   readJsonBody,
   safeEqual,
 } from "../_lib/security.js";
+import { getDataSourceId } from "../_lib/notion-data-source.js";
 
 const TARGET_STATUS = "출고준비";
 const DEFAULT_LOOKBACK_DAYS = 14;
@@ -83,15 +84,15 @@ function isValidTracking(v) {
   return /^\d[\d-]{7,25}$/.test(String(v || "").trim());
 }
 
-async function buildReceiptMap(notion, NOTION_DB, lookbackDays) {
+async function buildReceiptMap(notion, dataSourceId, lookbackDays) {
   const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000).toISOString();
   const map = new Map();
   const dup = new Set();
 
   let cursor = undefined;
   while (true) {
-    const resp = await notion.databases.query({
-      database_id: NOTION_DB,
+    const resp = await notion.dataSources.query({
+      data_source_id: dataSourceId,
       page_size: 100,
       start_cursor: cursor,
       filter: {
@@ -122,9 +123,9 @@ async function buildReceiptMap(notion, NOTION_DB, lookbackDays) {
   return { map, dup };
 }
 
-async function queryPagesByReceipt(notion, NOTION_DB, receipt) {
-  return await notion.databases.query({
-    database_id: NOTION_DB,
+async function queryPagesByReceipt(notion, dataSourceId, receipt) {
+  return await notion.dataSources.query({
+    data_source_id: dataSourceId,
     page_size: 5,
     filter: {
       property: "접수번호",
@@ -172,6 +173,7 @@ export async function onRequest(context) {
 
   try {
     const notion = new Client({ auth: env.NOTION_TOKEN });
+    const dataSourceId = await getDataSourceId(notion, env);
     const body = await readJsonBody(request);
 
     const {
@@ -188,7 +190,7 @@ export async function onRequest(context) {
       return json(
         {
           error: "서버 설정 오류: TRACKING_ADMIN_PASS가 설정되지 않았습니다.",
-          hint: "Cloudflare Pages > Settings > Environment variables 에 TRACKING_ADMIN_PASS를 Production / Preview로 추가한 뒤 다시 배포하세요.",
+          hint: "Cloudflare Pages > Settings > Variables and Secrets 에 TRACKING_ADMIN_PASS를 추가한 뒤 다시 배포하세요.",
         },
         500
       );
@@ -227,7 +229,7 @@ export async function onRequest(context) {
     }
 
     const lb = Number.isFinite(Number(lookbackDays)) ? Number(lookbackDays) : DEFAULT_LOOKBACK_DAYS;
-    const { map, dup } = await buildReceiptMap(notion, env.NOTION_DATABASE_ID, lb);
+    const { map, dup } = await buildReceiptMap(notion, dataSourceId, lb);
 
     const results = [];
     let ok = 0, miss = 0, duplicated = 0, skipped = 0, updated = 0;
@@ -257,7 +259,7 @@ export async function onRequest(context) {
           missCheckCount++;
 
           try {
-            const q = await queryPagesByReceipt(notion, env.NOTION_DATABASE_ID, receipt);
+            const q = await queryPagesByReceipt(notion, dataSourceId, receipt);
             await sleep(MISS_CHECK_DELAY_MS);
             const found = q.results || [];
 

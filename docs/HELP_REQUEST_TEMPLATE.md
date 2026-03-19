@@ -4,8 +4,10 @@
 
 수정 대상 URL: (index/status/tracking)
 
-수정 파일: (예: status.html)
+수정 파일: (예: public/status.html 또는 functions/api/status.js)
 
 원하는 동작: (구체적으로)
 
-운영 제한: (Vercel 무료, 호출/지연 민감 등)
+운영 제한: (Cloudflare Pages 무료 한도, 요청 수, Notion 호출 수, 지연 민감 여부)
+
+배포 기준: (GitHub main / Cloudflare Pages)
