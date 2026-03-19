@@ -24,6 +24,19 @@ function richText(p) {
   return t.map((x) => x.plain_text || "").join("").trim();
 }
 
+function makeErrorDetail(err, env) {
+  return {
+    name: String(err?.name || ""),
+    code: String(err?.code || ""),
+    status: Number(err?.status || err?.statusCode || 0),
+    message: String(err?.message || err || "").slice(0, 300),
+    hasNotionToken: Boolean(env?.NOTION_TOKEN),
+    hasNotionDbId: Boolean(env?.NOTION_DATABASE_ID),
+    notionDbIdPreview: String(env?.NOTION_DATABASE_ID || "").slice(0, 8),
+    body: err?.body || null,
+  };
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -46,6 +59,7 @@ export async function onRequest(context) {
   }
 
   const url = new URL(request.url);
+  const debug = url.searchParams.get("debug") === "1";
   const body = request.method === "POST" ? await readJsonBody(request) : {};
   const receipt = String(request.method === "GET" ? url.searchParams.get("receipt") : body?.receipt || "").trim();
 
@@ -60,6 +74,26 @@ export async function onRequest(context) {
         message: "접수번호 형식을 다시 확인해 주세요.",
       },
       400
+    );
+  }
+
+  if (!env.NOTION_TOKEN) {
+    return json(
+      {
+        error: "CONFIG_ERROR",
+        message: "Cloudflare에 NOTION_TOKEN이 설정되지 않았어요.",
+      },
+      500
+    );
+  }
+
+  if (!env.NOTION_DATABASE_ID) {
+    return json(
+      {
+        error: "CONFIG_ERROR",
+        message: "Cloudflare에 NOTION_DATABASE_ID가 설정되지 않았어요.",
+      },
+      500
     );
   }
 
@@ -79,6 +113,7 @@ export async function onRequest(context) {
         {
           error: "NOT_FOUND",
           message: "입력하신 접수번호를 찾을 수 없어요.",
+          ...(debug ? { debug: { receipt, matched: 0 } } : {}),
         },
         404
       );
@@ -100,11 +135,14 @@ export async function onRequest(context) {
       200
     );
   } catch (err) {
-    console.error(err);
+    const detail = makeErrorDetail(err, env);
+    console.error("status lookup error:", detail);
+
     return json(
       {
         error: "LOOKUP_FAILED",
         message: "조회 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
+        ...(debug ? { debug: detail } : {}),
       },
       500
     );
