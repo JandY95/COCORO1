@@ -7,6 +7,7 @@ import {
   json,
   readJsonBody,
 } from "../_lib/security.js";
+import { getDataSourceId } from "../_lib/notion-data-source.js";
 
 const statusLimiter = createLimiterStore();
 const PROP_RECEIPT = "접수번호";
@@ -24,15 +25,15 @@ function richText(p) {
   return t.map((x) => x.plain_text || "").join("").trim();
 }
 
-function makeErrorDetail(err, env) {
+function toDebug(err, env) {
   return {
-    name: String(err?.name || ""),
-    code: String(err?.code || ""),
-    status: Number(err?.status || err?.statusCode || 0),
-    message: String(err?.message || err || "").slice(0, 300),
-    hasNotionToken: Boolean(env?.NOTION_TOKEN),
-    hasNotionDbId: Boolean(env?.NOTION_DATABASE_ID),
-    notionDbIdPreview: String(env?.NOTION_DATABASE_ID || "").slice(0, 8),
+    name: err?.name || "",
+    code: err?.code || "",
+    status: String(err?.status || err?.statusCode || 0),
+    message: err?.message || String(err),
+    hasNotionToken: !!String(env?.NOTION_TOKEN || "").trim(),
+    hasNotionDbId: !!String(env?.NOTION_DATABASE_ID || "").trim(),
+    notionDbIdPreview: String(env?.NOTION_DATABASE_ID || "").trim().slice(0, 8),
     body: err?.body || null,
   };
 }
@@ -59,9 +60,13 @@ export async function onRequest(context) {
   }
 
   const url = new URL(request.url);
-  const debug = url.searchParams.get("debug") === "1";
+  const debugMode = url.searchParams.get("debug") === "1";
   const body = request.method === "POST" ? await readJsonBody(request) : {};
-  const receipt = String(request.method === "GET" ? url.searchParams.get("receipt") : body?.receipt || "").trim();
+  const receipt = String(
+    request.method === "GET"
+      ? url.searchParams.get("receipt")
+      : body?.receipt || ""
+  ).trim();
 
   if (!receipt) {
     return json({ error: "Missing receipt" }, 400);
@@ -77,30 +82,12 @@ export async function onRequest(context) {
     );
   }
 
-  if (!env.NOTION_TOKEN) {
-    return json(
-      {
-        error: "CONFIG_ERROR",
-        message: "Cloudflare에 NOTION_TOKEN이 설정되지 않았어요.",
-      },
-      500
-    );
-  }
-
-  if (!env.NOTION_DATABASE_ID) {
-    return json(
-      {
-        error: "CONFIG_ERROR",
-        message: "Cloudflare에 NOTION_DATABASE_ID가 설정되지 않았어요.",
-      },
-      500
-    );
-  }
-
   try {
     const notion = new Client({ auth: env.NOTION_TOKEN });
-    const q = await notion.databases.query({
-      database_id: env.NOTION_DATABASE_ID,
+    const dataSourceId = await getDataSourceId(notion, env);
+
+    const q = await notion.dataSources.query({
+      data_source_id: dataSourceId,
       filter: {
         property: PROP_RECEIPT,
         title: { equals: receipt },
@@ -113,7 +100,6 @@ export async function onRequest(context) {
         {
           error: "NOT_FOUND",
           message: "입력하신 접수번호를 찾을 수 없어요.",
-          ...(debug ? { debug: { receipt, matched: 0 } } : {}),
         },
         404
       );
@@ -123,8 +109,14 @@ export async function onRequest(context) {
     const props = page.properties || {};
 
     const receiptTitle = titleText(props[PROP_RECEIPT]);
-    const statusName = props[PROP_STATUS]?.status?.name || props[PROP_STATUS]?.select?.name || "접수";
-    const trackingNumber = richText(props[PROP_TRACK]) || props[PROP_TRACK]?.number?.toString?.() || "";
+    const statusName =
+      props[PROP_STATUS]?.status?.name ||
+      props[PROP_STATUS]?.select?.name ||
+      "접수";
+    const trackingNumber =
+      richText(props[PROP_TRACK]) ||
+      props[PROP_TRACK]?.number?.toString?.() ||
+      "";
 
     return json(
       {
@@ -135,16 +127,17 @@ export async function onRequest(context) {
       200
     );
   } catch (err) {
-    const detail = makeErrorDetail(err, env);
-    console.error("status lookup error:", detail);
+    console.error(err);
 
-    return json(
-      {
-        error: "LOOKUP_FAILED",
-        message: "조회 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
-        ...(debug ? { debug: detail } : {}),
-      },
-      500
-    );
+    const payload = {
+      error: "LOOKUP_FAILED",
+      message: "조회 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
+    };
+
+    if (debugMode) {
+      payload.debug = toDebug(err, env);
+    }
+
+    return json(payload, 500);
   }
 }
