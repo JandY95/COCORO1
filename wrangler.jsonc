@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "notion-address-form-cloudflare",
+  "pages_build_output_dir": "./public",
+  "compatibility_date": "2026-03-19",
+  "compatibility_flags": ["nodejs_compat"]
+}

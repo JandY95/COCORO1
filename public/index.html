@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COCORO SHOP | 배송 정보</title>
+
+  <!-- 카카오(다음) 우편번호 서비스 -->
+  <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+  <style>
+    :root{
+      --bg1:#fff7fb;
+      --bg2:#f6fbff;
+      --card:rgba(255,255,255,.92);
+      --text:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --accent:#e56aa6;
+      --accent2:#7aa7ff;
+      --danger:#ef4444;
+      --ok:#0f766e;
+      --shadow: 0 14px 48px rgba(17,24,39,.10);
+      --radius: 18px;
+
+      --season-overlay-opacity:.18;
+      --season-glow-1: rgba(229,106,166,.16);
+      --season-glow-2: rgba(122,167,255,.14);
+      --season-glow-3: rgba(255,210,225,.12);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      color:var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(900px 600px at 12% 12%, rgba(229,106,166,.16), transparent 60%),
+        radial-gradient(900px 600px at 88% 18%, rgba(122,167,255,.14), transparent 60%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+
+    /* ===== Monthly Theme (auto) overlay ===== */
+    body::before{
+      content:"";
+      position:fixed;
+      inset:-40px;
+      pointer-events:none;
+      z-index:-1;
+      opacity: var(--season-overlay-opacity, .18);
+      background:
+        radial-gradient(900px 600px at 12% 12%, var(--season-glow-1, rgba(229,106,166,.16)), transparent 60%),
+        radial-gradient(900px 600px at 88% 18%, var(--season-glow-2, rgba(122,167,255,.14)), transparent 60%),
+        radial-gradient(900px 600px at 70% 90%, var(--season-glow-3, rgba(255,210,225,.12)), transparent 60%);
+    }
+
+    /* ✅ 폭 통일(접수조회와 동일) */
+    .wrap{
+      width: min(820px, 92vw);
+      margin: 26px auto 64px;
+    }
+
+    .hero{
+      padding: 14px 8px 10px;
+      position: relative;
+    }
+
+    /* ✅ 헤더(브랜드 + 우측 버튼) 통일 */
+    .hero-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 10px;
+      flex-wrap:wrap;
+    }
+
+    .top-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+
+    .btn-top{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border: 1px solid rgba(229,106,166,.35);
+      background: rgba(255,255,255,.75);
+      backdrop-filter: blur(10px);
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-weight: 900;
+      color:#b84a84;
+      cursor:pointer;
+      text-decoration:none;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn-top:active{ transform: translateY(1px); }
+
+    .brand-row{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin: 0; /* ✅ 위치 흔들림 방지 */
+    }
+    .mono{
+      width:44px; height:44px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(229,106,166,.95), rgba(122,167,255,.95));
+      box-shadow: 0 14px 30px rgba(229,106,166,.16);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight:950;
+      letter-spacing: .8px;
+      position:relative;
+      overflow:hidden;
+      flex: 0 0 auto;
+    }
+    .mono::after{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 45%);
+      transform: rotate(12deg);
+    }
+    .mono span{ position:relative; z-index:1; font-size: 18px; }
+
+    .brand-text{ display:flex; flex-direction:column; line-height:1.1; }
+    .brand-name{
+      font-weight:950;
+      letter-spacing:1px;
+      font-size: 14px;
+      opacity:.95;
+      line-height:1.1;
+    }
+
+    .title{
+      margin: 8px 0 6px;
+      font-size: clamp(28px, 4.8vw, 40px);
+      font-weight: 980;
+      letter-spacing: -0.6px;
+    }
+    .subtitle{
+      margin:0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14.5px;
+      max-width: 100%;
+      word-break: keep-all;
+    }
+
+    .card{
+      margin-top: 14px;
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(229,231,235,.78);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      overflow:hidden;
+    }
+
+    .card-top{
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(229,231,235,.78);
+      background: linear-gradient(90deg, rgba(229,106,166,.09), rgba(122,167,255,.08));
+    }
+
+    .notice{
+      font-size: 13.2px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .notice b{ color:#374151; }
+
+    .form{ padding: 18px; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field{ display:flex; flex-direction:column; gap: 6px; }
+    label{
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: -.1px;
+    }
+    .hint{ font-size: 12.5px; color: var(--muted); line-height:1.45; }
+
+    input, textarea{
+      width:100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 12px;
+      font-size: 16px; /* 모바일 자동 확대 방지 */
+      outline:none;
+      background:#fff;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    input:focus, textarea:focus{
+      border-color: rgba(229,106,166,.55);
+      box-shadow: 0 0 0 4px rgba(229,106,166,.13);
+    }
+    textarea{ min-height: 92px; resize: vertical; }
+
+    .readonly{ background: rgba(243,244,246,.75); }
+
+    .row{
+      display:flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .row > *{ flex:1; }
+
+    .btn{
+      border:none;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 16px;
+      font-weight: 950;
+      cursor:pointer;
+      min-height: 48px;
+      transition: filter .15s ease, transform .05s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn-outline{
+      background:#fff;
+      border:1px solid rgba(229,106,166,.40);
+      color:#b84a84;
+    }
+    .btn-primary{
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color:#fff;
+      box-shadow: 0 12px 24px rgba(229,106,166,.16);
+    }
+    .btn-ghost{
+      background: rgba(255,255,255,.7);
+      border: 1px solid rgba(229,231,235,.8);
+      color:#374151;
+      font-weight: 900;
+    }
+
+    .actions{
+      margin-top: 16px;
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .trust-row{
+      margin-top:14px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .trust-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height: 48px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border:1px solid rgba(229,231,235,.85);
+      background:rgba(255,255,255,.72);
+      color:#374151;
+      font-size:12.8px;
+      font-weight:900;
+      line-height:1.2;
+      text-align:center;
+      white-space:nowrap;
+    }
+
+    /* 에러 */
+    .error-box{
+      display:none;
+      border: 1px solid rgba(239,68,68,.35);
+      background: rgba(239,68,68,.06);
+      color:#991b1b;
+      padding: 12px 12px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+    .field.invalid input,
+    .field.invalid textarea{
+      border-color: rgba(239,68,68,.55);
+      box-shadow: 0 0 0 4px rgba(239,68,68,.12);
+    }
+    .field .err{
+      display:none;
+      color: var(--danger);
+      font-size: 12.5px;
+      font-weight: 900;
+    }
+    .field.invalid .err{ display:block; }
+
+    .status{
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+      min-height: 22px;
+    }
+    .status.ok{ color:var(--ok); font-weight: 950; }
+    .status.bad{ color:#b91c1c; font-weight: 950; }
+
+    .hidden{ display:none !important; }
+
+    /* 오배송 체크 */
+    .checkwrap{
+      margin-top: 14px;
+      border:1px solid rgba(229,231,235,.9);
+      border-radius: 16px;
+      background: rgba(255,255,255,.7);
+      padding: 12px 12px;
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+    }
+    .checkwrap input{ width:20px; height:20px; margin-top: 2px; }
+    .checkwrap .ctitle{ font-weight: 950; }
+    .checkwrap .csub{ color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 3px; }
+
+    /* 접수증 카드 */
+    .receipt-shell{
+      padding: 18px;
+    }
+    .receipt-banner{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      color: var(--ok);
+      font-weight: 980;
+      margin-bottom: 10px;
+    }
+    .receipt-card{
+      background: #fff;
+      border: 1px solid rgba(229,231,235,.95);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 10px 26px rgba(17,24,39,.08);
+      position: relative;
+      overflow:hidden;
+    }
+    .receipt-card::before{
+      content:"";
+      position:absolute;
+      inset:-60px;
+      background:
+        radial-gradient(420px 260px at 10% 10%, rgba(229,106,166,.12), transparent 60%),
+        radial-gradient(420px 260px at 90% 10%, rgba(122,167,255,.10), transparent 60%);
+      pointer-events:none;
+    }
+    .receipt-head{
+      position:relative;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(229,231,235,.95);
+      margin-bottom: 12px;
+    }
+    .receipt-brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight: 980;
+      letter-spacing: .8px;
+    }
+    .receipt-meta{
+      text-align:right;
+      color: var(--muted);
+      font-size: 12.8px;
+      line-height: 1.45;
+      font-weight: 800;
+    }
+    .receipt-grid{
+      position:relative;
+      display:grid;
+      grid-template-columns: 110px 1fr;
+      gap: 10px 12px;
+      align-items:start;
+    }
+    .rk{ color: var(--muted); font-weight: 900; }
+    .rv{ font-weight: 980; }
+    .receipt-note{
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    /* 주소 검색 모달(중앙) */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(17,24,39,.45);
+      backdrop-filter: blur(4px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 9999;
+      padding: 16px;
+    }
+    
+    .modal{
+      width: min(500px, calc(100vw - 32px));
+      max-width: calc(100vw - 32px);
+      height: min(540px, calc(100svh - 40px));
+      margin: 0 auto;
+      background:#fff;
+      border-radius: 18px;
+      overflow:hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      display:flex;
+      flex-direction:column;
+    }
+    
+    .modal-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(229,231,235,.9);
+      background: linear-gradient(90deg, rgba(229,106,166,.08), rgba(122,167,255,.08));
+      font-weight: 950;
+    }
+    
+    .modal-close{
+      border:none;
+      background: rgba(255,255,255,.8);
+      border: 1px solid rgba(229,231,235,.9);
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor:pointer;
+      font-weight: 950;
+    }
+    
+    .modal-body{
+      flex:1;
+      overflow:hidden;
+      background:#fff;
+    }
+    
+    #postcodeWrap{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      overflow:hidden;
+      background:#fff;
+    }
+    
+    #postcodeWrap iframe{
+      width:100% !important;
+      height:100% !important;
+      min-width:0 !important;
+      display:block;
+      border:0;
+      background:#fff;
+    }
+    /* 주소 찾기 버튼만 고정폭으로 */
+    .addr-row .btn-find{
+      flex: 0 0 auto;
+      width: 140px;
+      padding: 12px 12px;
+    }
+/* ✅ 모바일: 주소 입력칸을 먼저 보여주고, 주소찾기 버튼은 아래로 */
+@media (max-width: 640px){
+  .wrap{ margin: 18px auto 46px; }
+  .grid{ grid-template-columns: 1fr; }
+  .form{ padding: 16px; }
+  .card-top{ padding: 13px 16px; }
+
+  /* ✅ 모바일에서도 헤더 정렬 통일 */
+  .hero-head{ gap:10px; }
+  .top-actions{ width:100%; justify-content:flex-end; }
+  .actions{ flex-direction: column; }
+  .addr-row{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  /* 주소 칸이 안 찌그러지게 강제 */
+  .addr-row #baseAddress{
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  /* 버튼은 아래로 100% */
+  .addr-row .btn-find{
+    width: 100%;
+    flex: 0 0 auto;
+  }
+  
+  .modal-backdrop{
+    padding: 10px;
+  }
+
+  .modal{
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    height: min(74svh, 580px);
+    margin: 0 auto;
+    border-radius: 16px;
+  }
+
+  .modal-top{
+    padding: 10px 12px;
+  }
+  
+  .trust-row{
+    gap:10px;
+  }
+
+  .trust-pill{
+    min-height: 46px;
+    padding: 10px 14px;
+  }
+}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- ===== FORM HERO ===== -->
+    <header class="hero" id="heroForm">
+      <div class="hero-head">
+        <div class="brand-row">
+          <div class="mono" aria-hidden="true"><span>C</span></div>
+          <div class="brand-text">
+            <div class="brand-name">COCORO SHOP</div>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <a class="btn-top" href="./status.html">🔎 배송 조회</a>
+        </div>
+      </div>
+
+      <h1 class="title">배송 정보 입력</h1>
+      <p class="subtitle">
+        주문하신 상품을 가장 아름답고 정확한 상태로 보내드리기 위해 배송 정보를 확인할게요.<br/>
+        입력하신 정보는 <b>배송 처리 목적</b>으로만 사용되며, 접수 후에는 <b>접수번호로 배송 조회</b>가 가능해요.
+      </p>
+      <div class="trust-row" aria-label="안심 안내">
+        <span class="trust-pill">보통 1분 내 입력 가능</span>
+        <span class="trust-pill">배송 목적만 사용</span>
+        <span class="trust-pill">접수번호로 배송 조회 가능</span>
+      </div>
+    </header>
+
+    <!-- ===== RECEIPT HERO (폼 제출 후에는 이쪽만 보여줌) ===== -->
+    <header class="hero hidden" id="heroReceipt">
+      <div class="hero-head">
+        <div class="brand-row">
+          <div class="mono" aria-hidden="true"><span>C</span></div>
+          <div class="brand-text">
+            <div class="brand-name">COCORO SHOP</div>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <a class="btn-top" id="topStatusLink" href="./status.html">🔎 배송 조회</a>
+        </div>
+      </div>
+
+      <h1 class="title">접수 완료</h1>
+      <p class="subtitle">
+        아래 접수증을 저장해두시면, 나중에 “배송 조회”에서 진행 상태와 송장번호를 바로 확인할 수 있어요.
+      </p>
+    </header>
+
+    <!-- ===== FORM CARD ===== -->
+    <section class="card" aria-label="배송 정보 입력 폼" id="formCard">
+      <div class="card-top">
+        <div class="notice">
+          💡 <b>요청사항을 제외한 모든 항목은 필수</b>예요.<br/>
+          정확한 배송을 위해 필요한 정보만 확인하며, 누락된 항목은 마지막에 한 번 더 안내해드려요.
+        </div>
+      </div>
+
+      <div class="form">
+        <div id="errorBox" class="error-box"></div>
+
+        <form id="form" novalidate>
+          <div class="grid">
+            <div class="field" id="f_customerName">
+              <label for="customerName">받는 분 성함</label>
+              <input type="text" id="customerName" placeholder="예: 김서연" autocomplete="name" maxlength="40" />
+              <div class="hint">실명 또는 실제 수령자 성함을 권장해요. (오배송·반송 방지)</div>
+              <div class="err">받는 분 성함을 입력해주세요.</div>
+            </div>
+
+            <div class="field" id="f_phone">
+              <label for="phone">연락처</label>
+              <input type="tel" id="phone" placeholder="예: 010-1234-5678 / 02-123-4567" inputmode="tel" autocomplete="tel" maxlength="20" />
+              <div class="hint">배송 안내를 정확히 드릴 수 있도록 휴대폰 또는 지역번호 포함 번호를 입력해 주세요.</div>
+              <div class="err">연락처 형식을 확인해주세요.</div>
+            </div>
+
+            <!-- 내부 저장용 (숨김) -->
+            <input type="hidden" id="postcode" />
+            <input type="hidden" id="fullAddress" />
+            <input type="text" id="website" class="hidden" tabindex="-1" autocomplete="off" />
+
+            <div class="field" id="f_address" style="grid-column: 1 / -1;">
+              <label for="baseAddress">주소</label>
+              <div class="row addr-row">
+                <input type="text" id="baseAddress" class="readonly" readonly placeholder="‘주소 찾기’로 검색해주세요" />
+                <button type="button" class="btn btn-outline btn-find" onclick="openPostcode()">🔎 주소 찾기</button>
+              </div>
+              <div class="hint">도로명 주소를 선택하면 기본 주소가 자동으로 입력돼요.</div>
+              <div class="err">주소 찾기를 눌러 주소를 선택해주세요.</div>
+            </div>
+
+            <div class="field" id="f_detailAddress" style="grid-column: 1 / -1;">
+              <label for="detailAddress">상세주소</label>
+              <input type="text" id="detailAddress" placeholder="동/호수, 상호명, 층수 등" autocomplete="street-address" maxlength="140" />
+              <div class="hint">예: 101동 1203호 / COCORO 빌딩 1층 / 상호명</div>
+              <div class="err">상세주소를 입력해주세요.</div>
+            </div>
+          </div>
+
+          <div class="field" id="f_request" style="margin-top: 14px;">
+            <label for="request">요청사항 (선택)</label>
+            <textarea id="request" placeholder="예: 부재 시 문 앞에 놓아주세요 / 경비실에 맡겨주세요" maxlength="300"></textarea>
+          </div>
+
+          <div class="field" id="f_confirm">
+            <div class="checkwrap">
+              <input type="checkbox" id="confirmCheck" />
+              <div>
+                <div class="ctitle">입력하신 성함·연락처·주소를 한 번 더 확인해 주세요.</div>
+                <div class="csub">정확한 배송을 위해 마지막으로 한 번만 확인해 주세요.</div>
+                <div class="err" style="margin-top:6px;">정확한 배송을 위해 확인 체크를 부탁드려요.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn btn-primary" id="submitBtn">배송정보 접수하기</button>
+          </div>
+
+          <div id="status" class="status" aria-live="polite"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== RECEIPT CARD (제출 성공 후에만 표시) ===== -->
+    <section class="card hidden" id="receiptCard">
+      <div class="receipt-shell">
+        <div class="receipt-banner">✅ 접수 완료</div>
+
+        <div class="receipt-card" id="receiptArea">
+          <div class="receipt-head">
+            <div class="receipt-brand">
+              <div class="mono" style="width:38px;height:38px;border-radius:14px;box-shadow:none;"><span>C</span></div>
+              <div>COCORO SHOP</div>
+            </div>
+            <div class="receipt-meta">
+              <div>접수번호: <span id="r_receipt" style="color:#374151;font-weight:980;"></span></div>
+              <div>접수시간: <span id="r_time"></span></div>
+            </div>
+          </div>
+
+          <div class="receipt-grid">
+            <div class="rk">받는 분</div><div class="rv" id="r_name"></div>
+            <div class="rk">연락처</div><div class="rv" id="r_phone"></div>
+            <div class="rk">주소</div><div class="rv" id="r_address"></div>
+            <div class="rk">요청사항</div><div class="rv" id="r_request"></div>
+            <div class="rk">상태</div><div class="rv">접수</div>
+          </div>
+        </div>
+
+        <div class="receipt-note">
+          입력 내용을 수정해야 하시면 인스타그램 DM으로 <b>접수번호</b>와 수정 내용을 보내주세요.<br/>
+          진행 상태 확인은 “배송 조회”에서 <b>접수번호만</b> 입력하시면 바로 확인할 수 있어요.
+        </div>
+
+        <div class="actions" style="margin-top:14px;">
+          <button class="btn btn-ghost" type="button" id="copyReceiptBtn">접수번호 복사</button>
+          <a class="btn btn-ghost" id="goStatusBtn" href="./status.html" style="text-decoration:none;display:inline-flex;justify-content:center;align-items:center;">배송 조회</a>
+          <button class="btn btn-primary" type="button" id="savePngBtn">접수증 저장</button>
+        </div>
+
+        <div id="receiptStatus" class="status" style="margin-top:10px;"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 주소검색 모달(중앙) -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="주소 검색">
+      <div class="modal-top">
+        <div>주소 검색</div>
+        <button class="modal-close" type="button" onclick="closePostcode()">닫기</button>
+      </div>
+      <div class="modal-body">
+        <div id="postcodeWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Monthly Theme (auto) =====
+    (function applyMonthlyTheme(){
+      const m = new Date().getMonth() + 1; // 1~12
+      const root = document.documentElement;
+
+      const base = {
+        '--bg1': '#fff7fb',
+        '--bg2': '#f6fbff',
+        '--accent': '#e56aa6',
+        '--accent2': '#7aa7ff',
+        '--season-overlay-opacity': '.18',
+        '--season-glow-1': 'rgba(229,106,166,.16)',
+        '--season-glow-2': 'rgba(122,167,255,.14)',
+        '--season-glow-3': 'rgba(255,210,225,.12)',
+      };
+
+      const themes = {
+        1: {'--bg1':'#fbfcff','--bg2':'#f4f7ff','--accent':'#6b7cff','--accent2':'#c3d0ff','--season-glow-1':'rgba(107,124,255,.14)','--season-glow-2':'rgba(195,208,255,.18)','--season-glow-3':'rgba(240,244,255,.18)'},
+        2: {'--bg1':'#fff6fb','--bg2':'#f7fbff','--accent':'#e56aa6','--accent2':'#ffb6c9','--season-glow-1':'rgba(229,106,166,.18)','--season-glow-2':'rgba(255,182,201,.18)','--season-glow-3':'rgba(200,230,255,.12)'},
+        3: {'--bg1':'#fff7f3','--bg2':'#f5fbff','--accent':'#d86bb9','--accent2':'#ffb38a','--season-glow-1':'rgba(216,107,185,.16)','--season-glow-2':'rgba(255,179,138,.14)','--season-glow-3':'rgba(186,235,255,.12)'},
+        4: {'--bg1':'#fff3f8','--bg2':'#fffdf6','--accent':'#e46b9a','--accent2':'#ffd3e1','--season-glow-1':'rgba(228,107,154,.16)','--season-glow-2':'rgba(255,211,225,.22)','--season-glow-3':'rgba(255,245,219,.18)'},
+        5: {'--bg1':'#f3fff7','--bg2':'#f5fbff','--accent':'#2fb7a3','--accent2':'#7aa7ff','--season-glow-1':'rgba(47,183,163,.14)','--season-glow-2':'rgba(122,167,255,.12)','--season-glow-3':'rgba(190,255,225,.14)'},
+        6: {'--bg1':'#f4fffe','--bg2':'#f5f6ff','--accent':'#6c7bff','--accent2':'#35c9c0','--season-glow-1':'rgba(108,123,255,.14)','--season-glow-2':'rgba(53,201,192,.14)','--season-glow-3':'rgba(200,210,255,.14)'},
+        7: {'--bg1':'#f2fbff','--bg2':'#f6fffe','--accent':'#1aa7d7','--accent2':'#35c9c0','--season-glow-1':'rgba(26,167,215,.14)','--season-glow-2':'rgba(53,201,192,.14)','--season-glow-3':'rgba(175,240,255,.14)'},
+        8: {'--bg1':'#fff6f0','--bg2':'#f2fbff','--accent':'#ff8a7a','--accent2':'#5aa6ff','--season-glow-1':'rgba(255,138,122,.14)','--season-glow-2':'rgba(90,166,255,.12)','--season-glow-3':'rgba(255,210,175,.12)'},
+        9: {'--bg1':'#fffaf2','--bg2':'#f7f2ff','--accent':'#a56bd8','--accent2':'#f2c79a','--season-glow-1':'rgba(165,107,216,.12)','--season-glow-2':'rgba(242,199,154,.14)','--season-glow-3':'rgba(255,241,210,.16)'},
+        10:{'--bg1':'#fff7f0','--bg2':'#fffdf6','--accent':'#d26a4a','--accent2':'#f2c79a','--season-glow-1':'rgba(210,106,74,.14)','--season-glow-2':'rgba(242,199,154,.14)','--season-glow-3':'rgba(255,235,210,.16)'},
+        11:{'--bg1':'#fff6f7','--bg2':'#f7f2ef','--accent':'#a8566a','--accent2':'#caa07a','--season-glow-1':'rgba(168,86,106,.14)','--season-glow-2':'rgba(202,160,122,.14)','--season-glow-3':'rgba(245,230,218,.16)'},
+        12:{'--bg1':'#fff7fb','--bg2':'#f4f7ff','--accent':'#e11d48','--accent2':'#7aa7ff','--season-glow-1':'rgba(225,29,72,.12)','--season-glow-2':'rgba(122,167,255,.12)','--season-glow-3':'rgba(255,210,225,.12)'},
+      };
+
+      const t = { ...base, ...(themes[m] || {}) };
+      Object.entries(t).forEach(([k,v]) => root.style.setProperty(k, v));
+    })();
+
+    // ===== API (Vercel/Netlify 공통) =====
+    const submitUrl = "/api/submit";
+
+    function setStatus(msg, type){
+      const el = document.getElementById('status');
+      el.classList.remove('ok','bad');
+      if(type === 'ok') el.classList.add('ok');
+      if(type === 'bad') el.classList.add('bad');
+      el.textContent = msg || '';
+    }
+
+    function setReceiptStatus(msg, type){
+      const el = document.getElementById('receiptStatus');
+      el.classList.remove('ok','bad');
+      if(type === 'ok') el.classList.add('ok');
+      if(type === 'bad') el.classList.add('bad');
+      el.textContent = msg || '';
+    }
+
+    function clearErrors(){
+      document.getElementById('errorBox').style.display = 'none';
+      document.getElementById('errorBox').innerHTML = '';
+      document.querySelectorAll('.field').forEach(f => f.classList.remove('invalid'));
+      document.getElementById('f_confirm').classList.remove('invalid');
+      document.querySelector('#f_confirm .err').style.display = 'none';
+    }
+
+    function showErrors(missingLabels){
+      const box = document.getElementById('errorBox');
+      box.style.display = 'block';
+      box.innerHTML = `아래 항목을 확인해주세요:<br><b>• ${missingLabels.join('<br>• ')}</b>`;
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function digitsOnly(v){ return String(v||'').replace(/\D/g,''); }
+
+    function isValidKRTel(input){
+      const d = digitsOnly(input);
+      if(!d.startsWith('0')) return false;
+      if(d.length < 9 || d.length > 11) return false;
+      if(d.startsWith('02')) return (d.length === 9 || d.length === 10);
+      if(/^01[016789]/.test(d)) return (d.length === 10 || d.length === 11);
+      if(/^0\d{2}/.test(d)) return (d.length === 10 || d.length === 11);
+      return false;
+    }
+
+    function formatKRTel(v){
+      const d = digitsOnly(v).slice(0, 11);
+      if(d.startsWith('02')){
+        if(d.length <= 2) return d;
+        if(d.length <= 5) return d.replace(/(\d{2})(\d{1,3})/, '$1-$2');
+        if(d.length <= 9) return d.replace(/(\d{2})(\d{3})(\d{1,4})/, '$1-$2-$3');
+        return d.replace(/(\d{2})(\d{4})(\d{1,4})/, '$1-$2-$3');
+      }else{
+        if(d.length <= 3) return d;
+        if(d.length <= 7) return d.replace(/(\d{3})(\d{1,4})/, '$1-$2');
+        return d.replace(/(\d{3})(\d{3,4})(\d{1,4})/, '$1-$2-$3');
+      }
+    }
+
+    function updateFullAddress(){
+      const base = document.getElementById('baseAddress').value.trim();
+      const detail = document.getElementById('detailAddress').value.trim();
+      document.getElementById('fullAddress').value = detail ? `${base} ${detail}` : base;
+    }
+
+    document.getElementById('detailAddress').addEventListener('input', updateFullAddress);
+    document.getElementById('phone').addEventListener('input', (e)=>{
+      const formatted = formatKRTel(e.target.value);
+      if(e.target.value !== formatted) e.target.value = formatted;
+    });
+
+    // ===== Daum Postcode: 중앙 모달 embed =====
+    let postcodeInstance = null;
+    function openPostcode(){
+      const backdrop = document.getElementById('modalBackdrop');
+      const wrap = document.getElementById('postcodeWrap');
+
+      wrap.innerHTML = "";
+      backdrop.style.display = "flex";
+
+      postcodeInstance = new daum.Postcode({
+        oncomplete: (data) => {
+          document.getElementById('postcode').value = data.zonecode || '';
+          document.getElementById('baseAddress').value = data.address || '';
+          document.getElementById('detailAddress').focus();
+          updateFullAddress();
+          closePostcode();
+        },
+        onclose: () => {}
+      });
+
+      postcodeInstance.embed(wrap);
+    }
+    function closePostcode(){
+      document.getElementById('modalBackdrop').style.display = "none";
+      const wrap = document.getElementById('postcodeWrap');
+      wrap.innerHTML = "";
+      postcodeInstance = null;
+    }
+    window.openPostcode = openPostcode;
+    window.closePostcode = closePostcode;
+
+    // ===== 화면 전환: 폼 → 접수증 =====
+    function showReceiptScreen(){
+      document.getElementById('heroForm').classList.add('hidden');
+      document.getElementById('formCard').classList.add('hidden');
+
+      document.getElementById('heroReceipt').classList.remove('hidden');
+      document.getElementById('receiptCard').classList.remove('hidden');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== 클립보드 =====
+    async function copyText(t){
+      try{
+        await navigator.clipboard.writeText(t);
+        return true;
+      }catch{
+        const ta = document.createElement('textarea');
+        ta.value = t;
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        return ok;
+      }
+    }
+
+    // ===== 접수증 PNG 저장(캔버스) =====
+    function downloadReceiptPng(payload){
+      const w = 1100;
+      const h = 620;
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,w,h);
+
+      const grad = ctx.createLinearGradient(0,0,w,0);
+      grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || "#e56aa6");
+      grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || "#7aa7ff");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0,0,w,10);
+
+      ctx.fillStyle = "#111827";
+      ctx.font = "bold 38px Arial";
+      ctx.fillText("COCORO SHOP", 48, 70);
+
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "bold 22px Arial";
+      ctx.fillText("접수증", 48, 108);
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#374151";
+      ctx.font = "bold 22px Arial";
+      ctx.fillText(`접수번호: ${payload.receiptTitle}`, w-48, 70);
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "bold 20px Arial";
+      ctx.fillText(`접수시간: ${payload.timeText}`, w-48, 104);
+      ctx.textAlign = "left";
+
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.setLineDash([6,6]);
+      ctx.beginPath();
+      ctx.moveTo(48, 140);
+      ctx.lineTo(w-48, 140);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const leftK = 80;
+      const leftV = 230;
+      let y = 210;
+      const rowGap = 68;
+
+      const labelStyle = () => { ctx.fillStyle="#6b7280"; ctx.font="bold 24px Arial"; };
+      const valueStyle = () => { ctx.fillStyle="#111827"; ctx.font="bold 28px Arial"; };
+
+      labelStyle(); ctx.fillText("받는 분", leftK, y);
+      valueStyle(); ctx.fillText(payload.name, leftV, y);
+
+      y += rowGap;
+      labelStyle(); ctx.fillText("연락처", leftK, y);
+      valueStyle(); ctx.fillText(payload.phone, leftV, y);
+
+      y += rowGap;
+      labelStyle(); ctx.fillText("주소", leftK, y);
+      valueStyle(); wrapText(ctx, payload.address, leftV, y, w-48-leftV, 32);
+
+      y += rowGap + 20;
+      labelStyle(); ctx.fillText("요청사항", leftK, y);
+      valueStyle(); ctx.fillText(payload.request || "없음", leftV, y);
+
+      y += rowGap;
+      labelStyle(); ctx.fillText("상태", leftK, y);
+      valueStyle(); ctx.fillText("접수", leftV, y);
+
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `COCORO_접수증_${payload.receiptTitle}.png`;
+      a.click();
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+      const words = String(text||'').split(' ');
+      let line = '';
+      let yy = y;
+      for(let n=0;n<words.length;n++){
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if(metrics.width > maxWidth && n>0){
+          ctx.fillText(line, x, yy);
+          line = words[n] + ' ';
+          yy += lineHeight;
+        }else{
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, yy);
+    }
+
+    // ===== 제출 =====
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors();
+      setStatus('');
+      setReceiptStatus('');
+
+      const customerName = document.getElementById('customerName').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const postcode = document.getElementById('postcode').value.trim();
+      const baseAddress = document.getElementById('baseAddress').value.trim();
+      const detailAddress = document.getElementById('detailAddress').value.trim();
+      updateFullAddress();
+      const fullAddress = document.getElementById('fullAddress').value.trim();
+      const request = document.getElementById('request').value.trim();
+      const website = document.getElementById('website').value.trim();
+      const confirmCheck = document.getElementById('confirmCheck').checked;
+
+      const missing = [];
+
+      if(!customerName){
+        document.getElementById('f_customerName').classList.add('invalid');
+        missing.push('받는 분 성함');
+      }
+      if(!phone || !isValidKRTel(phone)){
+        document.getElementById('f_phone').classList.add('invalid');
+        missing.push('연락처(형식 확인)');
+      }
+      if(!postcode || !baseAddress){
+        document.getElementById('f_address').classList.add('invalid');
+        missing.push('주소(주소 찾기)');
+      }
+      if(!detailAddress){
+        document.getElementById('f_detailAddress').classList.add('invalid');
+        missing.push('상세주소');
+      }
+      if(!confirmCheck){
+        document.getElementById('f_confirm').classList.add('invalid');
+        document.querySelector('#f_confirm .err').style.display = 'block';
+        missing.push('배송정보 최종 확인(체크)');
+      }
+
+      if(missing.length){
+        showErrors(missing);
+        setStatus('입력되지 않은 항목이 있어요. 위 안내에 따라 차근차근 확인해 주세요.', 'bad');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.style.filter = 'grayscale(.1) opacity(.85)';
+      setStatus('안전하게 접수 중이에요… 잠시만 기다려 주세요.');
+
+      const payload = {
+        customerName, phone, postcode, baseAddress, detailAddress, request, website
+      };
+
+      try {
+        const response = await fetch(submitUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const raw = await response.text();
+        let result = {};
+        try { result = raw ? JSON.parse(raw) : {}; } catch { result = {}; }
+
+        if (response.ok) {
+          const receiptTitle = result.receiptTitle || result.receipt || '';
+          const now = new Date();
+          const timeText = `${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}. ${now.toLocaleTimeString('ko-KR')}`;
+
+          document.getElementById('r_receipt').textContent = receiptTitle || '(접수번호 없음)';
+          document.getElementById('r_time').textContent = timeText;
+          document.getElementById('r_name').textContent = customerName;
+          document.getElementById('r_phone').textContent = phone;
+          document.getElementById('r_address').textContent = fullAddress;
+          document.getElementById('r_request').textContent = request || '없음';
+
+          const statusHref = `./status.html#receipt=${encodeURIComponent(receiptTitle)}`;
+          const goStatusBtn = document.getElementById('goStatusBtn');
+          if (goStatusBtn) goStatusBtn.href = statusHref;
+
+          const topStatusLink = document.getElementById('topStatusLink');
+          if (topStatusLink) topStatusLink.href = statusHref;
+
+          document.getElementById('copyReceiptBtn').onclick = async () => {
+            const ok = await copyText(receiptTitle);
+            setReceiptStatus(ok ? '✅ 접수번호를 복사했어요.' : '❌ 복사에 실패했어요.', ok ? 'ok' : 'bad');
+          };
+
+          document.getElementById('savePngBtn').onclick = () => {
+            downloadReceiptPng({
+              receiptTitle,
+              timeText,
+              name: customerName,
+              phone,
+              address: fullAddress,
+              request: request || '없음'
+            });
+            setReceiptStatus('✅ 접수증 저장이 준비되었어요.', 'ok');
+          };
+
+          showReceiptScreen();
+        } else {
+          setStatus(`❌ 접수 저장이 완료되지 않았어요: ${result.error || raw || '오류'}`, 'bad');
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus(`❌ 접수 후 화면 표시 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요. (${error?.message || 'unknown'})`, 'bad');
+      } finally {
+        btn.disabled = false;
+        btn.style.filter = '';
+      }
+    });
+  </script>
+</body>
+</html>

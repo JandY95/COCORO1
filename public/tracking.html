@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COCORO SHOP | 송장 반영</title>
+
+  <!-- 엑셀(xlsx) 파싱: SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg1:#fff7fb; --bg2:#f6fbff; --card:rgba(255,255,255,.92);
+      --text:#111827; --muted:#6b7280; --line:#e5e7eb;
+      --accent:#e56aa6; --accent2:#7aa7ff; --danger:#ef4444; --ok:#0f766e;
+      --shadow: 0 14px 48px rgba(17,24,39,.10); --radius: 18px;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0; color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",Segoe UI,Roboto,sans-serif;
+      background:linear-gradient(180deg,var(--bg1),var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{width:min(900px,92vw); margin:26px auto 60px;}
+    .card{background:var(--card); border:1px solid rgba(229,231,235,.78); box-shadow:var(--shadow);
+      border-radius:var(--radius); overflow:hidden;}
+    .top{padding:14px 18px; border-bottom:1px solid rgba(229,231,235,.78);
+      background:linear-gradient(90deg,rgba(229,106,166,.09),rgba(122,167,255,.08)); font-weight:950;}
+    .inner{padding:18px;}
+    label{display:block; font-weight:900; margin:10px 0 8px;}
+    input[type="password"], input[type="number"]{
+      width:100%; border:1px solid var(--line); border-radius:14px; padding:12px; font-size:16px; outline:none; background:#fff;
+    }
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .btn{
+      border:none; border-radius:14px; padding:12px 14px; font-size:15px; font-weight:950; cursor:pointer;
+      background:linear-gradient(135deg,rgba(229,106,166,.98),rgba(122,167,255,.98)); color:#fff; min-height:46px;
+    }
+    .btn-ghost{
+      background:#fff; border:1px solid rgba(229,231,235,.9); color:#374151;
+    }
+    .note{color:var(--muted); font-size:13px; line-height:1.5; margin-top:8px;}
+    .drop{
+      margin-top:12px; padding:16px; border:2px dashed rgba(229,106,166,.35); border-radius:16px;
+      background:rgba(255,255,255,.7);
+    }
+    .drop.drag{background:rgba(229,106,166,.06);}
+
+    /* ✅ 드롭존을 클릭 가능한 영역처럼 보이게 */
+    .drop{ cursor:pointer; }
+    .drop:focus{
+      outline:none;
+      box-shadow: 0 0 0 4px rgba(229,106,166,.13);
+    }
+
+    /* ✅ 파일명 표시 라인 */
+    .fileline{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .filepill{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(229,231,235,.95);
+      background:#fff;
+      font-weight:900;
+      font-size:13px;
+      color:#374151;
+    }
+    .filepill.ok{
+      border-color: rgba(15,118,110,.25);
+      background: rgba(15,118,110,.06);
+      color: var(--ok);
+    }
+    .filepill.bad{
+      border-color: rgba(239,68,68,.28);
+      background: rgba(239,68,68,.06);
+      color:#b91c1c;
+    }
+
+    /* ✅ 파일 해제 버튼 */
+    .btn-mini{
+      border:none;
+      border-radius:999px;
+      padding:8px 10px;
+      font-size:13px;
+      font-weight:950;
+      cursor:pointer;
+      background:#fff;
+      border:1px solid rgba(229,231,235,.9);
+      color:#374151;
+      min-height:34px;
+    }
+    .btn-mini:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .small{font-size:12.5px; color:var(--muted);}
+    table{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;}
+    th,td{border-bottom:1px solid rgba(229,231,235,.9); padding:8px 6px; text-align:left; vertical-align:top;}
+    th{color:#374151;}
+    .pill{display:inline-block; padding:4px 8px; border-radius:999px; font-weight:900; font-size:12px;}
+    .ok{background:rgba(15,118,110,.10); color:var(--ok);}
+    .bad{background:rgba(239,68,68,.10); color:#b91c1c;}
+    .warn{background:rgba(245,158,11,.12); color:#92400e;}
+    .progress{margin-top:10px; font-size:13px; color:var(--muted);}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top">🚚 송장번호 자동 반영</div>
+      <div class="inner">
+        <div class="note">
+          1) CJ 엑셀 업로드 → 2) 미리보기 → 3) 적용 순서로 진행하세요.<br/>
+          엑셀 컬럼: <b>고객주문번호</b>(=접수번호), <b>운송장번호</b>(=송장번호)<br/>
+          <b>※ 엑셀 파일은 한 번에 1개만</b> 선택/드롭할 수 있어요.
+        </div>
+
+        <label>운영자 비밀번호</label>
+        <input id="pass" type="password" placeholder="비밀번호 입력" />
+
+        <div class="row" style="margin-top:12px;">
+          <label style="margin:0;">조회 기간(최근 N일)</label>
+          <input id="lookback" type="number" value="14" min="1" max="60" style="max-width:120px;" />
+
+          <label style="margin:0;"><input type="checkbox" id="overwrite" /> 기존 송장번호도 덮어쓰기</label>
+          <label style="margin:0;"><input type="checkbox" id="setDone" checked /> 적용시 출고완료+출고일시(오늘) 자동</label>
+
+          <!-- ✅ 기본 OFF -->
+          <label style="margin:0;">
+            <input type="checkbox" id="checkMissStatus" />
+            미일치 상태 확인(느림)
+          </label>
+        </div>
+
+        <div class="drop" id="drop" role="button" tabindex="0" aria-label="CJ 엑셀 파일 선택 또는 드래그&드롭">
+          <div><b>여기를 클릭해서 CJ 엑셀(.xlsx)을 선택</b>하거나, 드래그&드롭 하세요. <b>(한 번에 1개만 가능)</b></div>
+          <div class="small">엑셀은 서버에 업로드하지 않고, 브라우저에서 읽어 필요한 값만 전송합니다.</div>
+
+          <div class="fileline">
+            <span class="filepill" id="filePill">선택된 파일 없음</span>
+            <span class="small" id="fileMeta"></span>
+            <button class="btn-mini" id="btnClearFile" type="button" disabled>파일 해제</button>
+          </div>
+
+          <!-- ✅ 파일선택 input은 숨김 -->
+          <input id="file" type="file" accept=".xlsx,.xls" style="display:none;" />
+        </div>
+
+        <div class="row" style="margin-top:12px;">
+          <button class="btn btn-ghost" id="btnPreview">미리보기</button>
+          <button class="btn" id="btnApply">적용</button>
+        </div>
+
+        <div class="progress" id="progress"></div>
+
+        <div id="summary" style="margin-top:12px;"></div>
+        <div id="tableWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const drop = document.getElementById("drop");
+    const fileInput = document.getElementById("file");
+    const btnPreview = document.getElementById("btnPreview");
+    const btnApply = document.getElementById("btnApply");
+    const progress = document.getElementById("progress");
+    const summary = document.getElementById("summary");
+    const tableWrap = document.getElementById("tableWrap");
+    const filePill = document.getElementById("filePill");
+    const fileMeta = document.getElementById("fileMeta");
+    const btnClearFile = document.getElementById("btnClearFile");
+
+    // ✅ 드롭존 클릭/Enter/Space → 파일 선택창 열기
+    drop.addEventListener("click", () => fileInput.click());
+    drop.addEventListener("keydown", (e) => {
+      if(e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    // ✅ "파일 해제" 버튼 클릭 시: 드롭존 클릭 이벤트로 파일창이 뜨지 않게 막기
+    btnClearFile.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearSelectedFile();
+    });
+
+    let selectedFile = null;
+    let parsedItems = [];
+
+    function isExcelFile(file){
+      const name = (file?.name || "").toLowerCase();
+      return name.endsWith(".xlsx") || name.endsWith(".xls");
+    }
+
+    function setProgress(msg){ progress.textContent = msg || ""; }
+
+    function setFileUI({ file, count, error, loading }){
+      if(error){
+        filePill.textContent = error;
+        filePill.className = "filepill bad";
+        fileMeta.textContent = "";
+        btnClearFile.disabled = true;
+        return;
+      }
+      if(!file){
+        filePill.textContent = "선택된 파일 없음";
+        filePill.className = "filepill";
+        fileMeta.textContent = "";
+        btnClearFile.disabled = true;
+        return;
+      }
+
+      filePill.textContent = file.name;
+      filePill.className = "filepill ok";
+      btnClearFile.disabled = false;
+
+      if(loading){
+        fileMeta.textContent = "(읽는 중...)";
+      }else if(typeof count === "number"){
+        fileMeta.textContent = `(${count.toLocaleString()}건 로드)`;
+      }else{
+        fileMeta.textContent = "";
+      }
+    }
+
+    function esc(s){
+      return String(s||"").replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[m]));
+    }
+
+    function clearSelectedFile(){
+      selectedFile = null;
+      parsedItems = [];
+      fileInput.value = "";          // ✅ 같은 파일 다시 선택 가능
+      setFileUI({ file:null });
+      setProgress("");
+      summary.innerHTML = "";
+      tableWrap.innerHTML = "";
+    }
+
+    function parseXlsx(file){
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try{
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: "array" });
+            const sheetName = wb.SheetNames[0];
+            const ws = wb.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+            if(!rows.length) return reject(new Error("빈 엑셀입니다."));
+
+            const header = rows[0].map(x => String(x||"").trim());
+            const idxReceipt = header.indexOf("고객주문번호");
+            const idxTracking = header.indexOf("운송장번호");
+
+            if(idxReceipt < 0 || idxTracking < 0){
+              return reject(new Error("엑셀 첫 행에 '고객주문번호' 또는 '운송장번호' 컬럼이 없습니다."));
+            }
+
+            const items = [];
+            for(let i=1;i<rows.length;i++){
+              const r = rows[i];
+              const receipt = String(r[idxReceipt]||"").trim();
+              const tracking = String(r[idxTracking]||"").trim();
+              if(!receipt || !tracking) continue;
+              items.push({ receipt, tracking });
+            }
+            resolve(items);
+          }catch(err){
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function bindFile(file){
+      if(!file) return;
+
+      // ✅ 엑셀 확장자 체크
+      if(!isExcelFile(file)){
+        clearSelectedFile();
+        setFileUI({ error: "엑셀(.xlsx/.xls) 파일만 선택해 주세요." });
+        alert("엑셀(.xlsx/.xls) 파일만 선택해 주세요.");
+        return;
+      }
+
+      // 새 파일 선택 시 이전 결과 표/요약 초기화
+      summary.innerHTML = "";
+      tableWrap.innerHTML = "";
+
+      selectedFile = file;
+      setFileUI({ file, loading:true });
+      setProgress("엑셀 읽는 중...");
+
+      parseXlsx(file).then(items=>{
+        parsedItems = items;
+        setFileUI({ file, count: items.length });
+        setProgress(`엑셀 로드 완료: ${items.length}건 (미리보기 버튼을 눌러주세요)`);
+        setTimeout(()=> setProgress(""), 4000);
+      }).catch(err=>{
+        clearSelectedFile();
+        setFileUI({ error: "엑셀 읽기 실패 (파일 형식 확인)" });
+        alert(err.message || "엑셀 읽기 실패");
+      });
+    }
+
+    async function callApi({ dryRun }){
+      const pass = document.getElementById("pass").value.trim();
+      const overwrite = document.getElementById("overwrite").checked;
+      const setDone = document.getElementById("setDone").checked;
+      const lookbackDays = Number(document.getElementById("lookback").value || 14);
+      const checkMissStatus = document.getElementById("checkMissStatus")?.checked ?? false;
+
+      if(!pass){ alert("비밀번호를 입력해주세요."); return; }
+      if(!parsedItems.length){ alert("엑셀 파일을 먼저 선택/드롭 해주세요."); return; }
+
+      const CHUNK = 120;
+      const chunks = [];
+      for(let i=0;i<parsedItems.length;i+=CHUNK){
+        chunks.push(parsedItems.slice(i,i+CHUNK));
+      }
+
+      let merged = { ok:0, miss:0, duplicated:0, updated:0, skipped:0 };
+      let allResults = [];
+
+      for(let i=0;i<chunks.length;i++){
+        setProgress(`${dryRun ? "미리보기" : "적용"} 진행중... (${i+1}/${chunks.length})`);
+        const res = await fetch("/api/tracking-import", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({
+            pass,
+            items: chunks[i],
+            overwrite,
+            setDone,
+            dryRun,
+            lookbackDays,
+            checkMissStatus
+          })
+        });
+
+        const data = await res.json();
+        if(!res.ok){
+          const msg = data?.error || "실행 실패";
+          const hint = data?.hint ? `\n\n[해결 방법]\n${data.hint}` : "";
+          alert(msg + hint);
+          setProgress("");
+          return;
+        }
+
+        const s = data.summary || {};
+        for(const k of Object.keys(merged)) merged[k] += (s[k] || 0);
+        allResults = allResults.concat(data.results || []);
+      }
+
+      setProgress("");
+
+      summary.innerHTML = `
+        <div class="note">
+          <b>결과 요약</b> —
+          <span class="pill ok">일치 ${merged.ok}</span>
+          <span class="pill bad">미일치 ${merged.miss}</span>
+          <span class="pill warn">중복 ${merged.duplicated}</span>
+          <span class="pill ok">업데이트 ${merged.updated}</span>
+          <span class="pill warn">건너뜀 ${merged.skipped}</span>
+        </div>
+      `;
+
+      if (dryRun && merged.ok === 0) {
+        summary.innerHTML += `
+          <div class="note" style="margin-top:10px; line-height:1.6">
+            <b>안내</b><br/>
+            일치(출고준비 매칭) 건이 0건입니다. 보통 아래 이유입니다.<br/>
+            1) 해당 접수번호가 이미 <b>출고완료</b>로 바뀌어 있음<br/>
+            2) 노션에서 아직 <b>출고준비</b>로 전환되지 않음<br/>
+            3) 조회 기간(최근 N일)이 짧음 → N을 늘려 재시도<br/>
+            4) 노션에서 해당 건의 처리상태가 <b>출고준비</b>인지 먼저 확인하세요.
+          </div>
+        `;
+      }
+
+      const show = allResults.slice(0,80);
+      let html = `<table><thead><tr><th>접수번호</th><th>운송장번호</th><th>상태</th></tr></thead><tbody>`;
+      for(const r of show){
+        const st = esc(r.status||"");
+        const cls = st.startsWith("미일치") ? "bad" : (st.startsWith("중복") ? "warn" : "ok");
+        html += `<tr><td>${esc(r.receipt)}</td><td>${esc(r.tracking)}</td><td><span class="pill ${cls}">${st}</span></td></tr>`;
+      }
+      html += `</tbody></table><div class="small">※ 표는 상위 80건만 표시됩니다.</div>`;
+      tableWrap.innerHTML = html;
+
+      if(!dryRun){
+        alert("적용이 완료되었습니다. Notion에서 몇 건만 샘플로 확인해 주세요.");
+      }
+    }
+
+    // drag & drop
+    drop.addEventListener("dragover", (e)=>{ e.preventDefault(); drop.classList.add("drag"); });
+    drop.addEventListener("dragleave", ()=> drop.classList.remove("drag"));
+    drop.addEventListener("drop", (e)=>{
+      e.preventDefault();
+      drop.classList.remove("drag");
+
+      const files = e.dataTransfer.files;
+      if(!files || files.length === 0) return;
+
+      // ✅ 여러 개 드롭 방지(안내 + 첫 번째만)
+      if(files.length > 1){
+        alert("엑셀 파일은 한 번에 1개만 가능합니다. 첫 번째 파일만 사용합니다.");
+      }
+
+      bindFile(files[0]);
+    });
+
+    fileInput.addEventListener("change", (e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(f) bindFile(f);
+    });
+
+    btnPreview.addEventListener("click", ()=> callApi({ dryRun:true }));
+    btnApply.addEventListener("click", ()=> {
+      if(!confirm("정말 적용할까요? (Notion DB의 송장번호가 변경됩니다)")) return;
+      callApi({ dryRun:false });
+    });
+  </script>
+</body>
+</html>

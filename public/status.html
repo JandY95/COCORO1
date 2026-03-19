@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COCORO SHOP | 배송 조회</title>
+  <style>
+    :root{
+      --bg1:#fff7fb; --bg2:#f6fbff;
+      --card:rgba(255,255,255,.92);
+      --text:#111827; --muted:#6b7280; --line:#e5e7eb;
+      --accent:#e56aa6; --accent2:#7aa7ff;
+      --shadow: 0 14px 48px rgba(17,24,39,.10);
+      --radius: 18px;
+
+      --season-overlay-opacity:.18;
+      --season-glow-1: rgba(229,106,166,.16);
+      --season-glow-2: rgba(122,167,255,.14);
+      --season-glow-3: rgba(255,210,225,.12);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",Segoe UI,Roboto,sans-serif;
+      background:
+        radial-gradient(900px 600px at 12% 12%, rgba(229,106,166,.16), transparent 60%),
+        radial-gradient(900px 600px at 88% 18%, rgba(122,167,255,.14), transparent 60%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:-40px;
+      pointer-events:none;
+      z-index:-1;
+      opacity: var(--season-overlay-opacity, .18);
+      background:
+        radial-gradient(900px 600px at 12% 12%, var(--season-glow-1, rgba(229,106,166,.16)), transparent 60%),
+        radial-gradient(900px 600px at 88% 18%, var(--season-glow-2, rgba(122,167,255,.14)), transparent 60%),
+        radial-gradient(900px 600px at 70% 90%, var(--season-glow-3, rgba(255,210,225,.12)), transparent 60%);
+    }
+
+    /* ✅ index.html과 폭/여백 통일 */
+    .wrap{ width:min(820px,92vw); margin:26px auto 64px; }
+    .hero{ padding:14px 8px 10px; position:relative; }
+
+    .hero-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .top-actions{ display:flex; gap:10px; align-items:center; justify-content:flex-end; }
+
+    .btn-top{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid rgba(229,106,166,.35);
+      background: rgba(255,255,255,.75);
+      backdrop-filter: blur(10px);
+      padding:10px 14px; border-radius:14px;
+      font-weight:950; color:#b84a84; cursor:pointer; text-decoration:none;
+      white-space:nowrap; user-select:none;
+    }
+    .btn-top:active{ transform: translateY(1px); }
+
+    .brand-row{ display:flex; align-items:center; gap:12px; margin:0; }
+    .mono{
+      width:44px;height:44px;border-radius:16px;
+      background:linear-gradient(135deg, rgba(229,106,166,.95), rgba(122,167,255,.95));
+      box-shadow:0 14px 30px rgba(229,106,166,.16);
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-weight:950; letter-spacing:.8px; position:relative; overflow:hidden;
+      flex:0 0 auto;
+    }
+    .mono::after{ content:""; position:absolute; inset:-40%;
+      background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 45%);
+      transform:rotate(12deg);
+    }
+    .mono span{ position:relative; z-index:1; font-size:18px; }
+
+    .brand-text{ display:flex; flex-direction:column; line-height:1.1; }
+    .brand-name{
+      font-weight:950;
+      letter-spacing:1px;
+      font-size:14px;
+      opacity:.95;
+      line-height:1.1;
+    }
+
+    .title{ margin:8px 0 6px; font-size:clamp(28px,4.8vw,40px); font-weight:980; letter-spacing:-.5px; }
+    .subtitle{ margin:0; color:var(--muted); line-height:1.7; font-size:14.5px; }
+
+    .card{
+      margin-top:14px; background:var(--card); backdrop-filter: blur(10px);
+      border:1px solid rgba(229,231,235,.78); box-shadow:var(--shadow);
+      border-radius:var(--radius); overflow:hidden;
+    }
+    .card-top{
+      padding:14px 18px; border-bottom:1px solid rgba(229,231,235,.78);
+      background:linear-gradient(90deg, rgba(229,106,166,.09), rgba(122,167,255,.08));
+      color:var(--muted); font-size:13.2px; line-height:1.55;
+    }
+    .form{ padding:18px; }
+    label{ font-size:14px; font-weight:950; display:block; }
+    input{
+      width:100%; border:1px solid var(--line); border-radius:14px;
+      padding:12px 12px; font-size:16px; outline:none; background:#fff;
+    }
+    input:focus{ border-color:rgba(229,106,166,.55); box-shadow:0 0 0 4px rgba(229,106,166,.13); }
+
+    .row{ display:flex; gap:10px; align-items:center; margin-top:8px; }
+    .row > *{ flex:1; }
+
+    .btn{
+      border:none; border-radius:14px; padding:12px 14px;
+      font-size:16px; font-weight:950; cursor:pointer; min-height:48px;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:#fff; box-shadow:0 12px 24px rgba(229,106,166,.16);
+      white-space:nowrap; user-select:none;
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn-ghost{
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius:14px;
+      padding:10px 14px;
+      font-size:14px;
+      font-weight:950;
+      cursor:pointer;
+      background: rgba(255,255,255,.75);
+      border:1px solid rgba(229,106,166,.30);
+      color:#b84a84;
+      user-select:none;
+      min-height:44px;
+      white-space:nowrap;
+    }
+    .btn-ghost:active{ transform: translateY(1px); }
+
+    /* 조회 버튼 고정폭 */
+    .btn-query{ flex: 0 0 auto; width: 140px; padding: 12px 12px; }
+
+    .status{
+      margin-top:12px; font-size:14px; line-height:1.5; min-height:22px;
+      color:var(--muted); white-space:pre-line;
+    }
+    .status.bad{ color:#b91c1c; font-weight:950; }
+    .status.ok{ color:#0f766e; font-weight:950; }
+    .status.warn{ color:#92400e; font-weight:950; }
+
+    .result{
+      margin-top:14px; padding:14px; border-radius:16px;
+      border:1px solid rgba(229,231,235,.9); background:#fff;
+    }
+    .kv{ display:grid; grid-template-columns:120px 1fr; gap:10px; }
+    .k{ color:var(--muted); font-weight:950; }
+    .v{ font-weight:980; }
+
+    .helper-row{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-start;
+    }
+
+    /* ===== 접수번호 다시 확인 UI ===== */
+    .recover{
+      margin-top:12px;
+      padding:14px;
+      border-radius:16px;
+      border:1px solid rgba(229,231,235,.9);
+      background: rgba(255,255,255,.85);
+    }
+    .recover-head{
+      font-weight:980;
+      margin-bottom:6px;
+      letter-spacing:-0.2px;
+    }
+    .recover-note{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+      margin-bottom:10px;
+    }
+    .recover-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+      margin-top:8px;
+    }
+    .recover-actions{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .recover-list{
+      margin-top:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .recover-item{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(229,231,235,.9);
+      background:#fff;
+    }
+    .recover-left{ min-width: 0; }
+    .recover-receipt{
+      font-weight:980;
+      word-break:break-all;
+      line-height:1.25;
+    }
+    .recover-meta{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:12.8px;
+      line-height:1.4;
+    }
+    .recover-right{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      align-items:center;
+      flex:0 0 auto;
+    }
+    .btn-mini{
+      border:none;
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:13px;
+      font-weight:950;
+      cursor:pointer;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:#fff;
+      white-space:nowrap;
+      user-select:none;
+      min-height:40px;
+    }
+    .btn-mini-ghost{
+      background: rgba(255,255,255,.9);
+      color:#b84a84;
+      border:1px solid rgba(229,106,166,.30);
+    }
+
+    @media (max-width:640px){
+      .wrap{ margin:18px auto 46px; }
+      .form{ padding:16px; }
+      .row{ flex-direction:column; align-items:stretch; }
+      .btn-query{ width:100%; }
+      .hero-head{ gap:10px; }
+      .top-actions{ width:100%; justify-content:flex-end; }
+      .recover-grid{ grid-template-columns: 1fr; }
+      .recover-item{ flex-direction:column; }
+      .recover-right{ width:100%; justify-content:flex-start; }
+      .btn-mini{ width:100%; justify-content:center; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="hero-head">
+        <div class="brand-row">
+          <div class="mono"><span>C</span></div>
+          <div class="brand-text">
+            <div class="brand-name">COCORO SHOP</div>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <a class="btn-top" href="./index.html">📦 배송 정보 입력</a>
+        </div>
+      </div>
+
+      <h1 class="title">배송 조회</h1>
+      <p class="subtitle">접수번호로 현재 진행 상태와 송장번호를 확인할 수 있어요.</p>
+    </header>
+
+    <section class="card">
+      <div class="card-top">
+        💡 접수번호는 접수증에 적혀 있어요. 접수번호만 입력하시면 바로 조회할 수 있어요.
+      </div>
+
+      <div class="form">
+        <label for="receipt">접수번호</label>
+        <div class="row">
+          <input id="receipt" type="text" placeholder="예: 260101-123456-김서연-7890" />
+          <button id="btn" class="btn btn-query" type="button">조회</button>
+        </div>
+
+        <div class="helper-row">
+          <button id="btnRecoverToggle" class="btn-ghost" type="button">🔎 접수번호 다시 확인하기</button>
+        </div>
+
+        <div id="status" class="status"></div>
+        <div id="result" class="result" style="display:none;"></div>
+
+        <!-- ✅ 접수번호 다시 확인 박스 -->
+        <div id="recoverBox" class="recover" style="display:none;">
+          <div class="recover-head">접수번호 다시 확인</div>
+          <div class="recover-note">
+            이름 / 연락처 / 접수일로 접수번호를 다시 확인할 수 있어요.<br/>
+            같은 날 주문이 여러 건이면 목록으로 보여드리며, 개인정보 보호를 위해 일부 정보는 가려서 표시돼요.
+          </div>
+
+          <div class="recover-grid">
+            <div>
+              <label for="recoverName">이름</label>
+              <input id="recoverName" type="text" placeholder="예: 김서연" autocomplete="name" />
+            </div>
+
+            <div>
+              <label for="recoverPhone">연락처</label>
+              <input id="recoverPhone" type="tel" placeholder="예: 010-1234-5678" inputmode="tel" autocomplete="tel" />
+            </div>
+
+            <div>
+              <label for="recoverDate">접수일</label>
+              <input id="recoverDate" type="date" />
+            </div>
+          </div>
+
+          <div class="recover-actions">
+            <button id="btnRecover" class="btn-mini" type="button">접수번호 찾기</button>
+            <button id="btnRecoverClose" class="btn-mini btn-mini-ghost" type="button">닫기</button>
+          </div>
+
+          <div id="recoverStatus" class="status"></div>
+          <div id="recoverList" class="recover-list"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ===== Monthly Theme (auto) =====
+    (function applyMonthlyTheme(){
+      const m = new Date().getMonth() + 1;
+      const root = document.documentElement;
+
+      const base = {
+        '--bg1': '#fff7fb',
+        '--bg2': '#f6fbff',
+        '--accent': '#e56aa6',
+        '--accent2': '#7aa7ff',
+        '--season-overlay-opacity': '.18',
+        '--season-glow-1': 'rgba(229,106,166,.16)',
+        '--season-glow-2': 'rgba(122,167,255,.14)',
+        '--season-glow-3': 'rgba(255,210,225,.12)',
+      };
+
+      const themes = {
+        1: {'--bg1':'#fbfcff','--bg2':'#f4f7ff','--accent':'#6b7cff','--accent2':'#c3d0ff','--season-glow-1':'rgba(107,124,255,.14)','--season-glow-2':'rgba(195,208,255,.18)','--season-glow-3':'rgba(240,244,255,.18)'},
+        2: {'--bg1':'#fff6fb','--bg2':'#f7fbff','--accent':'#e56aa6','--accent2':'#ffb6c9','--season-glow-1':'rgba(229,106,166,.18)','--season-glow-2':'rgba(255,182,201,.18)','--season-glow-3':'rgba(200,230,255,.12)'},
+        3: {'--bg1':'#fff7f3','--bg2':'#f5fbff','--accent':'#d86bb9','--accent2':'#ffb38a','--season-glow-1':'rgba(216,107,185,.16)','--season-glow-2':'rgba(255,179,138,.14)','--season-glow-3':'rgba(186,235,255,.12)'},
+        4: {'--bg1':'#fff3f8','--bg2':'#fffdf6','--accent':'#e46b9a','--accent2':'#ffd3e1','--season-glow-1':'rgba(228,107,154,.16)','--season-glow-2':'rgba(255,211,225,.22)','--season-glow-3':'rgba(255,245,219,.18)'},
+        5: {'--bg1':'#f3fff7','--bg2':'#f5fbff','--accent':'#2fb7a3','--accent2':'#7aa7ff','--season-glow-1':'rgba(47,183,163,.14)','--season-glow-2':'rgba(122,167,255,.12)','--season-glow-3':'rgba(190,255,225,.14)'},
+        6: {'--bg1':'#f4fffe','--bg2':'#f5f6ff','--accent':'#6c7bff','--accent2':'#35c9c0','--season-glow-1':'rgba(108,123,255,.14)','--season-glow-2':'rgba(53,201,192,.14)','--season-glow-3':'rgba(200,210,255,.14)'},
+        7: {'--bg1':'#f2fbff','--bg2':'#f6fffe','--accent':'#1aa7d7','--accent2':'#35c9c0','--season-glow-1':'rgba(26,167,215,.14)','--season-glow-2':'rgba(53,201,192,.14)','--season-glow-3':'rgba(175,240,255,.14)'},
+        8: {'--bg1':'#fff6f0','--bg2':'#f2fbff','--accent':'#ff8a7a','--accent2':'#5aa6ff','--season-glow-1':'rgba(255,138,122,.14)','--season-glow-2':'rgba(90,166,255,.12)','--season-glow-3':'rgba(255,210,175,.12)'},
+        9: {'--bg1':'#fffaf2','--bg2':'#f7f2ff','--accent':'#a56bd8','--accent2':'#f2c79a','--season-glow-1':'rgba(165,107,216,.12)','--season-glow-2':'rgba(242,199,154,.14)','--season-glow-3':'rgba(255,241,210,.16)'},
+        10:{'--bg1':'#fff7f0','--bg2':'#fffdf6','--accent':'#d26a4a','--accent2':'#f2c79a','--season-glow-1':'rgba(210,106,74,.14)','--season-glow-2':'rgba(242,199,154,.14)','--season-glow-3':'rgba(255,235,210,.16)'},
+        11:{'--bg1':'#fff6f7','--bg2':'#f7f2ef','--accent':'#a8566a','--accent2':'#caa07a','--season-glow-1':'rgba(168,86,106,.14)','--season-glow-2':'rgba(202,160,122,.14)','--season-glow-3':'rgba(245,230,218,.16)'},
+        12:{'--bg1':'#fff7fb','--bg2':'#f4f7ff','--accent':'#e11d48','--accent2':'#7aa7ff','--season-glow-1':'rgba(225,29,72,.12)','--season-glow-2':'rgba(122,167,255,.12)','--season-glow-3':'rgba(255,210,225,.12)'},
+      };
+
+      const t = { ...base, ...(themes[m] || {}) };
+      Object.entries(t).forEach(([k,v]) => root.style.setProperty(k, v));
+    })();
+
+    const API_URL = "/api/status";
+    const RECOVER_API_URL = "/api/recover";
+
+    function esc(s){
+      return String(s||"").replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[m]));
+    }
+
+    function setStatus(msg, type){
+      const el = document.getElementById("status");
+      el.classList.remove("bad","ok","warn");
+      if(type) el.classList.add(type);
+      el.textContent = msg || "";
+    }
+
+    function setResult(data){
+      const box = document.getElementById("result");
+      if(!data){
+        box.style.display="none";
+        box.innerHTML="";
+        return;
+      }
+
+      const statusRaw = (data.status || "").trim();
+      const statusNorm = statusRaw.replace(/\s+/g, "");
+      const tracking = (data.trackingNumber || "").trim();
+
+      const showTracking = (statusNorm === "출고완료") && !!tracking;
+      const trackingRow = showTracking
+        ? `<div class="k">송장번호</div><div class="v">CJ대한통운 ${esc(tracking)}</div>`
+        : ``;
+
+      box.style.display="block";
+      box.innerHTML = `
+        <div class="kv">
+          <div class="k">접수번호</div><div class="v">${esc(data.receipt || "")}</div>
+          <div class="k">처리상태</div><div class="v">${esc(statusRaw || "")}</div>
+          ${trackingRow}
+        </div>
+        ${
+          statusNorm !== "출고완료"
+          ? `<div style="margin-top:10px;color:var(--muted);font-size:13px;line-height:1.5;">
+               송장번호는 <b>출고완료</b> 상태가 되면 표시됩니다.
+             </div>`
+          : ``
+        }
+      `;
+    }
+
+    function getReceiptFromHash(){
+      const hash = (location.hash || "").replace(/^#/, "");
+      if(!hash) return "";
+      const params = new URLSearchParams(hash);
+      return (params.get("receipt") || "").trim();
+    }
+
+    function digitsOnly(v){ return String(v||"").replace(/\D/g,""); }
+
+    // 예시 placeholder를 "오늘 YYMMDD-HHMMSS-김서연-7890" 형태로 갱신
+    function setReceiptPlaceholder(){
+      const now = new Date();
+      const kst = new Date(now.getTime() + 9*60*60*1000);
+      const yy = String(kst.getUTCFullYear()).slice(-2);
+      const mm = String(kst.getUTCMonth()+1).padStart(2,"0");
+      const dd = String(kst.getUTCDate()).padStart(2,"0");
+      const hh = String(kst.getUTCHours()).padStart(2,"0");
+      const mi = String(kst.getUTCMinutes()).padStart(2,"0");
+      const ss = String(kst.getUTCSeconds()).padStart(2,"0");
+      const ex = `${yy}${mm}${dd}-${hh}${mi}${ss}-김서연-7890`;
+      const input = document.getElementById("receipt");
+      if(input) input.placeholder = `예: ${ex}`;
+    }
+    setReceiptPlaceholder();
+
+    async function doQuery(){
+      setResult(null);
+      const receipt = (document.getElementById("receipt").value || "").trim();
+      if(!receipt){
+        setStatus("접수번호를 입력해 주세요.", "warn");
+        return;
+      }
+
+      const btn = document.getElementById("btn");
+      btn.disabled = true;
+      setStatus("조회 중입니다…", "");
+
+      try{
+        const res = await fetch(`${API_URL}?receipt=${encodeURIComponent(receipt)}`);
+        const data = await res.json().catch(()=> ({}));
+        if(res.ok){
+          setStatus("조회가 완료되었어요.", "ok");
+          setResult(data);
+        }else if(res.status === 404){
+          setResult(null);
+          setStatus(
+            "입력하신 접수번호가 확인되지 않아요.\n접수증에 적힌 번호를 다시 확인해 주세요. (하이픈 포함)",
+            "warn"
+          );
+        }else if(res.status === 400){
+          setResult(null);
+          setStatus("접수번호를 다시 확인해 주세요.", "warn");
+        }else{
+          setResult(null);
+          const msg = data?.message || "현재 조회가 원활하지 않아요. 잠시 후 다시 시도해 주세요.";
+          setStatus(msg, "bad");
+        }
+      }catch{
+        setStatus("❌ 네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.", "bad");
+      }finally{
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById("btn").addEventListener("click", doQuery);
+    document.getElementById("receipt").addEventListener("keydown", (e)=>{
+      if(e.key === "Enter"){ e.preventDefault(); doQuery(); }
+    });
+
+    const fromHash = getReceiptFromHash();
+    if(fromHash){
+      document.getElementById("receipt").value = fromHash;
+      doQuery();
+    }
+
+    // ===== 접수번호 다시 확인 =====
+    const recoverBox = document.getElementById("recoverBox");
+    const btnRecoverToggle = document.getElementById("btnRecoverToggle");
+    const btnRecoverClose = document.getElementById("btnRecoverClose");
+    const btnRecover = document.getElementById("btnRecover");
+    const recoverStatus = document.getElementById("recoverStatus");
+    const recoverList = document.getElementById("recoverList");
+
+    const recoverName = document.getElementById("recoverName");
+    const recoverPhone = document.getElementById("recoverPhone");
+    const recoverDate = document.getElementById("recoverDate");
+
+    // 기본 날짜: 오늘
+    (function setRecoverDefaultDate(){
+      const now = new Date();
+      const kst = new Date(now.getTime() + 9*60*60*1000);
+      const yyyy = kst.getUTCFullYear();
+      const mm = String(kst.getUTCMonth()+1).padStart(2,"0");
+      const dd = String(kst.getUTCDate()).padStart(2,"0");
+      recoverDate.value = `${yyyy}-${mm}-${dd}`;
+    })();
+
+    function setRecoverStatus(msg, type){
+      recoverStatus.classList.remove("bad","ok","warn");
+      if(type) recoverStatus.classList.add(type);
+      recoverStatus.textContent = msg || "";
+    }
+
+    btnRecoverToggle.addEventListener("click", ()=>{
+      const open = recoverBox.style.display !== "none";
+      recoverBox.style.display = open ? "none" : "block";
+      recoverList.innerHTML = "";
+      setRecoverStatus("", "");
+      if(!open) recoverName.focus();
+    });
+
+    btnRecoverClose.addEventListener("click", ()=>{
+      recoverBox.style.display = "none";
+      recoverList.innerHTML = "";
+      setRecoverStatus("", "");
+    });
+
+    // 간단한 전화 자동 정리(보기만 좋게)
+    recoverPhone.addEventListener("input", (e)=>{
+      const d = digitsOnly(e.target.value).slice(0, 11);
+      if(d.startsWith("02")){
+        // 02-xxxx-xxxx
+        if(d.length <= 2) e.target.value = d;
+        else if(d.length <= 5) e.target.value = d.replace(/(\d{2})(\d{1,3})/, "$1-$2");
+        else if(d.length <= 9) e.target.value = d.replace(/(\d{2})(\d{3})(\d{1,4})/, "$1-$2-$3");
+        else e.target.value = d.replace(/(\d{2})(\d{4})(\d{1,4})/, "$1-$2-$3");
+      }else{
+        if(d.length <= 3) e.target.value = d;
+        else if(d.length <= 7) e.target.value = d.replace(/(\d{3})(\d{1,4})/, "$1-$2");
+        else e.target.value = d.replace(/(\d{3})(\d{3,4})(\d{1,4})/, "$1-$2-$3");
+      }
+    });
+
+    function maskDetail(detail){
+      if(!detail) return "";
+      return "상세주소(가림)";
+    }
+
+    // “가린 접수증” PNG 저장
+    function downloadReceiptMaskedPng(item){
+      const w = 1100;
+      const h = 560;
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,w,h);
+
+      const grad = ctx.createLinearGradient(0,0,w,0);
+      grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || "#e56aa6");
+      grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || "#7aa7ff");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0,0,w,10);
+
+      ctx.fillStyle = "#111827";
+      ctx.font = "bold 38px Arial";
+      ctx.fillText("COCORO SHOP", 48, 70);
+
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "bold 22px Arial";
+      ctx.fillText("접수증(재발급)", 48, 108);
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#374151";
+      ctx.font = "bold 22px Arial";
+      ctx.fillText(`접수번호: ${item.receipt}`, w-48, 70);
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "bold 20px Arial";
+      ctx.fillText(`접수시간: ${item.createdKST || ""}`, w-48, 104);
+      ctx.textAlign = "left";
+
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.setLineDash([6,6]);
+      ctx.beginPath();
+      ctx.moveTo(48, 140);
+      ctx.lineTo(w-48, 140);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const leftK = 80;
+      const leftV = 260;
+      let y = 220;
+      const rowGap = 70;
+
+      const labelStyle = () => { ctx.fillStyle="#6b7280"; ctx.font="bold 24px Arial"; };
+      const valueStyle = () => { ctx.fillStyle="#111827"; ctx.font="bold 28px Arial"; };
+
+      labelStyle(); ctx.fillText("연락처", leftK, y);
+      valueStyle(); ctx.fillText(item.phoneMasked || "", leftV, y);
+
+      y += rowGap;
+      labelStyle(); ctx.fillText("주소", leftK, y);
+      valueStyle(); ctx.fillText("개인정보 보호를 위해 가려져 있어요.", leftV, y);
+
+      y += rowGap;
+      labelStyle(); ctx.fillText("요청사항", leftK, y);
+      valueStyle(); ctx.fillText("개인정보 보호를 위해 가려져 있어요.", leftV, y);
+
+      y += rowGap;
+      labelStyle(); ctx.fillText("안내", leftK, y);
+      ctx.fillStyle="#111827"; ctx.font="bold 22px Arial";
+      ctx.fillText("접수번호와 접수시간만으로도 조회하실 수 있어요.", leftV, y);
+
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `COCORO_접수증재발급_${item.receipt}.png`;
+      a.click();
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+      const words = String(text||'').split(' ');
+      let line = '';
+      let yy = y;
+      for(let n=0;n<words.length;n++){
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if(metrics.width > maxWidth && n>0){
+          ctx.fillText(line, x, yy);
+          line = words[n] + ' ';
+          yy += lineHeight;
+        }else{
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, yy);
+    }
+
+    async function doRecover(){
+      recoverList.innerHTML = "";
+      setRecoverStatus("", "");
+
+      const name = (recoverName.value || "").trim();
+      const phone = (recoverPhone.value || "").trim();
+      const date = (recoverDate.value || "").trim();
+
+      if(!name || name.replace(/\s+/g,"").length < 2){
+        setRecoverStatus("이름을 정확히 입력해 주세요.", "warn");
+        recoverName.focus();
+        return;
+      }
+      const pd = digitsOnly(phone);
+      if(pd.length < 9 || pd.length > 11){
+        setRecoverStatus("연락처를 정확히 입력해 주세요. (숫자 9~11자리)", "warn");
+        recoverPhone.focus();
+        return;
+      }
+      if(!date){
+        setRecoverStatus("접수일(날짜)을 선택해 주세요.", "warn");
+        recoverDate.focus();
+        return;
+      }
+
+      btnRecover.disabled = true;
+      setRecoverStatus("확인 중입니다…", "");
+
+      try{
+        const res = await fetch(RECOVER_API_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ name, phone, date })
+        });
+
+        const data = await res.json().catch(()=> ({}));
+
+        if(!res.ok){
+          setRecoverStatus("현재 확인이 원활하지 않아요. 잠시 후 다시 시도해 주세요.", "bad");
+          btnRecover.disabled = false;
+          return;
+        }
+
+        const items = data.items || [];
+        if(items.length === 0){
+          setRecoverStatus(
+            "일치하는 접수 내역을 찾지 못했어요.\n이름/연락처/접수일을 다시 확인해 주세요.",
+            "warn"
+          );
+          btnRecover.disabled = false;
+          return;
+        }
+
+        setRecoverStatus(`확인되었어요. (총 ${items.length}건)`, "ok");
+
+        recoverList.innerHTML = items.map((it, idx) => `
+          <div class="recover-item">
+            <div class="recover-left">
+              <div class="recover-receipt">${esc(it.receipt)}</div>
+              <div class="recover-meta">
+                접수시간: ${esc(it.createdKST || "")}<br/>
+                연락처: ${esc(it.phoneMasked || "")}
+              </div>
+            </div>
+            <div class="recover-right">
+              <button class="btn-mini" data-action="fill" data-receipt="${esc(it.receipt)}">이 번호로 조회</button>
+              <button class="btn-mini btn-mini-ghost" data-action="copy" data-receipt="${esc(it.receipt)}">복사</button>
+              <button class="btn-mini btn-mini-ghost" data-action="download" data-idx="${idx}">접수증 저장</button>
+            </div>
+          </div>
+        `).join("");
+
+        // 이벤트 위임
+        recoverList.onclick = async (e)=>{
+          const btn = e.target.closest("button");
+          if(!btn) return;
+
+          const action = btn.dataset.action;
+          if(action === "fill"){
+            const receipt = btn.dataset.receipt || "";
+            document.getElementById("receipt").value = receipt;
+            recoverBox.style.display = "none";
+            doQuery();
+          }
+          if(action === "copy"){
+            const receipt = btn.dataset.receipt || "";
+            try{
+              await navigator.clipboard.writeText(receipt);
+              setRecoverStatus("접수번호를 복사했어요.", "ok");
+            }catch{
+              setRecoverStatus("복사에 실패했어요. 접수번호를 길게 눌러 복사해 주세요.", "warn");
+            }
+          }
+          if(action === "download"){
+            const i = Number(btn.dataset.idx);
+            const item = items[i];
+            if(!item) return;
+            downloadReceiptMaskedPng(item);
+            setRecoverStatus("접수증 저장이 준비되었어요.", "ok");
+          }
+        };
+
+      }catch(err){
+        console.error(err);
+        setRecoverStatus("네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.", "bad");
+      }finally{
+        btnRecover.disabled = false;
+      }
+    }
+
+    btnRecover.addEventListener("click", doRecover);
+    [recoverName, recoverPhone].forEach(el=>{
+      el.addEventListener("keydown", (e)=>{ if(e.key === "Enter"){ e.preventDefault(); doRecover(); }});
+    });
+  </script>
+</body>
+</html>
